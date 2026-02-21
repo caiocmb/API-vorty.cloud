@@ -1,0 +1,107 @@
+:root {
+    /* Cores extraídas do seu logo */
+    --vorty-blue-dark: #2e3b8e;
+    --vorty-blue-light: #4ba6dd;
+    --dark-bg: #f8fafc; /* Fundo claro para contrastar com o logo azul */
+    --text-main: #1e293b;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    /* Isso garante que o body ocupe toda a altura da tela */
+    width: 100%;
+    height: 100vh; 
+    display: flex;
+    justify-content: center; /* Centraliza horizontalmente */
+    align-items: center;     /* Centraliza verticalmente */
+    background: radial-gradient(circle at top right, #e0f2fe, #f8fafc);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-main);
+    overflow: hidden; /* Evita scrolls desnecessários se a tela for pequena */
+}
+
+.container {
+    width: 90%; /* Garante que em telas pequenas não cole nas bordas */
+    max-width: 450px;
+    padding: 50px 40px;
+    background: white;
+    border-radius: 30px;
+    box-shadow: 0 25px 50px -12px rgba(46, 59, 142, 0.15);
+    border: 1px solid rgba(75, 166, 221, 0.1);
+    position: relative;
+    /* Removido o margin: 20px para não deslocar o flex */
+    text-align: center;
+}
+
+/* Detalhe decorativo no topo */
+.container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 4px;
+    background: linear-gradient(90deg, var(--vorty-blue-dark), var(--vorty-blue-light));
+    border-radius: 0 0 10px 10px;
+}
+
+.logo {
+    width: 100%;
+    max-width: 220px;
+    height: auto;
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+    color: var(--vorty-blue-dark);
+    font-weight: 700;
+}
+
+.divider {
+    height: 1px;
+    width: 50px;
+    background: var(--vorty-blue-light);
+    margin: 0 auto 25px;
+    opacity: 0.5;
+}
+
+p {
+    line-height: 1.7;
+    color: #64748b;
+    margin-bottom: 35px;
+    font-size: 0.95rem;
+}
+
+.btn-suporte {
+    display: block;
+    background: linear-gradient(135deg, var(--vorty-blue-dark) 0%, #1e2a78 100%);
+    color: white !important;
+    text-decoration: none;
+    padding: 16px;
+    border-radius: 14px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 20px rgba(46, 59, 142, 0.2);
+    text-transform: uppercase;
+}
+
+.btn-suporte:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 30px rgba(46, 59, 142, 0.3);
+    filter: brightness(1.2);
+}
+
+.footer {
+    margin-top: 35px;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
