@@ -29,7 +29,7 @@ header('Access-Control-Allow-Methods: PUT, GET, POST, DELETE');
 header('Access-Control-Allow-Headers: X-Requested-With,Authorization,Content-Type');
 
 //define a idade para 1 dia para melhorar a velocidade/cache.
-header('Access-Control-Max-Age: 86400');
+//header('Access-Control-Max-Age: 86400');
 
 //filtra as rotas e joga para array
 $url_atual = filter_var($_SERVER['REQUEST_URI'], FILTER_SANITIZE_URL);
@@ -54,7 +54,7 @@ if(!file_exists($rota))
     ];
 
     header('Content-Type: application/json; charset=utf-8');
-    header("HTTP/1.1 404 Not Found");
+    header("HTTP/1.1 403 Not Found");
     echo json_encode($return);
     die();
 }
