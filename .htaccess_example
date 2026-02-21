@@ -1,7 +1,17 @@
+### Rewrite Rules Added by CyberPanel Rewrite Rule Generator
+
 RewriteEngine On
-RewriteBase /VORTY-api
+RewriteCond %{HTTPS}  !=on
+RewriteRule ^/?(.*) https://%{SERVER_NAME}/$1 [R,L]
 
-RewriteCond %{THE_REQUEST} /public/([^\s?]*) [NC]
-RewriteRule ^ %1 [L,NE,R=302]
+### End CyberPanel Generated Rules.
 
-RewriteRule ^((?!public/).*)$ public/$1 [L,NC]
+# Se acessar apenas o domínio, redireciona para public/
+RewriteRule ^$ public/ [L]
+
+# Se no for arquivo nem pasta real
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Redireciona tudo para o front controller
+RewriteRule ^(.*)$ public/index.php [L]
