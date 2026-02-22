@@ -54,7 +54,7 @@ if(!file_exists($rota))
     ];
 
     header('Content-Type: application/json; charset=utf-8');
-    header("HTTP/1.1 403 Not Found");
+    header("HTTP/1.1 404 Not Found");
     echo json_encode($return);
     die();
 }
