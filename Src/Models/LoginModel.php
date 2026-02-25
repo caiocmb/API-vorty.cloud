@@ -21,14 +21,17 @@ class LoginModel extends ConnectDB
         $sql = $this->conexao->prepare("SELECT 
                                             u.id
                                             ,u.name
+                                            ,u.social_name
                                             ,u.cpf
                                             ,u.password
                                             ,date_format(u.date_of_birth,'%d%m%Y') as aniversario
                                             ,u.id_company as company_id
                                             ,e.surname as company_name
+                                            ,CASE u.status WHEN 'A' THEN 'Ativo' WHEN 'I' THEN 'Inativo' WHEN 'E' THEN 'Plano Encerrado' ELSE 'Bloqueado' END as status
+                                            ,foto_app as foto
                                         FROM tb_gym_member as u 
                                         INNER JOIN tb_company as e on e.id = u.id_company
-                                        WHERE u.cpf = :cpf and e.cnpj = :company and u.status = 'A' LIMIT 1");
+                                        WHERE u.cpf = :cpf and e.cnpj = :company and u.status not in ('I') LIMIT 1");
         $sql->execute([
             'cpf' => $cpf,
             'company' => $company
@@ -101,6 +104,9 @@ class LoginModel extends ConnectDB
         //registra log
         $this->log->registrarLogin($aluno['id'], $cpf, $company, true, 'Aluno logou na plataforma');
 
+        $foto_app = $aluno['foto'];
+        if(empty(trim($foto_app)) == true OR $foto_app == null){ $foto_app = 'no_picture.webp'; }
+
         //se deu certo, retorna successo e o token
         $response->status = 'success';
         $response->code_error = 200;
@@ -108,7 +114,10 @@ class LoginModel extends ConnectDB
         $response->data = [
             "token" => $encode,
             "name" => $aluno['name'],
-            "uid" => $aluno['id']
+            "social_name" => $aluno['social_name'],
+            "uid" => $aluno['id'],
+            "status" => $aluno['status'],
+            "photo" => $foto_app
         ];
 
         return true;
