@@ -13,27 +13,32 @@ class ConnectDB {
     // conecta na base do saas
     private static function ConectarSaas() {
         try {
+            if (self::$Connect == null) {
+                $dsn = 'mysql:host=' . $_ENV['DB_HOST'] . ';dbname=' . $_ENV['DB_DATABASE'] . ';charset=utf8mb4';
+                
+                // Agrupamos todos os comandos em uma única string separada por ponto e vírgula
+                $commands = "SET lc_time_names = 'pt_BR'; "
+                        . "SET time_zone = '-03:00'; "
+                        . "SET NAMES utf8mb4; "
+                        . "SET character_set_connection=utf8mb4; "
+                        . "SET character_set_client=utf8mb4; "
+                        . "SET character_set_results=utf8mb4;";
 
-            //Verifica se a conexão não existe
-            if (self::$Connect == null):
+                $options = [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, // Facilita sua vida na Controller
+                    PDO::MYSQL_ATTR_INIT_COMMAND => $commands
+                ];
 
-                $dsn = 'mysql:host=' . $_ENV['DB_HOST'] . ';dbname=' . $_ENV['DB_DATABASE'];
-                self::$Connect = new PDO($dsn, $_ENV['DB_USER'], $_ENV['DB_PASS'], null);
-            endif;
+                self::$Connect = new PDO($dsn, $_ENV['DB_USER'], $_ENV['DB_PASS'], $options);
+            }
         } catch (PDOException $e) {
-            echo $e->getMessage();
+            // Em produção, não use echo $e->getMessage(). Logue em arquivo.
+            error_log("Erro na conexão SaaS: " . $e->getMessage());
+            return null;
         }
-       
-        //Seta os atributos para que seja retornado as excessões do banco ;
-        self::$Connect->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
-        self::$Connect->setAttribute(PDO::MYSQL_ATTR_INIT_COMMAND,"SET lc_time_names='pt_BR'");  
-        self::$Connect->setAttribute(PDO::MYSQL_ATTR_INIT_COMMAND,"SET NAMES utf8");        
-        self::$Connect->setAttribute(PDO::MYSQL_ATTR_INIT_COMMAND,"SET character_set_connection=utf8");   
-        self::$Connect->setAttribute(PDO::MYSQL_ATTR_INIT_COMMAND,"SET character_set_client=utf8");   
-        self::$Connect->setAttribute(PDO::MYSQL_ATTR_INIT_COMMAND,"SET character_set_results=utf8");  
-        self::$Connect->setAttribute(PDO::MYSQL_ATTR_INIT_COMMAND,"SET PERSIST information_schema_stats_expiry = 0");  
-       
-        return  self::$Connect;
+        
+        return self::$Connect;
     }
 
     // conecta na base de log
