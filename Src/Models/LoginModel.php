@@ -96,6 +96,10 @@ class LoginModel extends ConnectDB
             "iat" => time(),
             "uid" => $aluno['id'],
             "name" => $aluno['name'],
+            "company" => [
+                "id" => $aluno['company_id'],
+                "name" => $aluno['company_name']
+            ],
             "resources" => ['alunos'],
         ];
 
@@ -104,8 +108,8 @@ class LoginModel extends ConnectDB
         //registra log
         $this->log->registrarLogin($aluno['id'], $cpf, $company, true, 'Aluno logou na plataforma');
 
-        $foto_app = $aluno['foto'];
-        if(empty(trim($foto_app)) == true OR $foto_app == null){ $foto_app = 'no_picture.webp'; }
+        $foto_app = $aluno['foto'] ?? '';
+        if(empty(trim($foto_app))){ $foto_app = 'no_picture.webp'; }
 
         //se deu certo, retorna successo e o token
         $response->status = 'success';

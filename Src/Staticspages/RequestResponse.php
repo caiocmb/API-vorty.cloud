@@ -25,19 +25,19 @@ class RequestResponse
 
     public function ApiResponse()
     {   
-        if($this->status == 'error')
-        {
-            $return = [
-                "status" => $this->status,
-                "message" => $this->message
-            ];
-        }
-        else
+        if($this->status == 'success')
         {
             $return = [
                 "status" => $this->status,
                 "message" => $this->message,
                 "data" => $this->data
+            ];            
+        }
+        else
+        {
+            $return = [
+                "status" => $this->status,
+                "message" => $this->message
             ];
         }
         

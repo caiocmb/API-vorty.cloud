@@ -31,7 +31,7 @@ class JwtMiddleware
 
         try {
             $decoded = JWT::decode($token, new Key($this->secret, 'HS256'));
-            $request['id'] = (array) $decoded;
+            $request['data'] = (array) $decoded;
             return $next($request);
         } catch (\Exception $e) {
             $response->status = 'error';

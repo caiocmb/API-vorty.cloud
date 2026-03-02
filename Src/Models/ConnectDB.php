@@ -24,8 +24,9 @@ class ConnectDB {
             echo $e->getMessage();
         }
        
-        //Seta os atributos para que seja retornado as excessões do banco
+        //Seta os atributos para que seja retornado as excessões do banco ;
         self::$Connect->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+        self::$Connect->setAttribute(PDO::MYSQL_ATTR_INIT_COMMAND,"SET lc_time_names='pt_BR'");  
         self::$Connect->setAttribute(PDO::MYSQL_ATTR_INIT_COMMAND,"SET NAMES utf8");        
         self::$Connect->setAttribute(PDO::MYSQL_ATTR_INIT_COMMAND,"SET character_set_connection=utf8");   
         self::$Connect->setAttribute(PDO::MYSQL_ATTR_INIT_COMMAND,"SET character_set_client=utf8");   

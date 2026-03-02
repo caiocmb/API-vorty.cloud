@@ -13,6 +13,11 @@ if($_ENV['DISPLAY_ERRORS'] == "true")
     ini_set('display_startup_errors', 1);
     error_reporting(E_ALL);
 }
+else
+{
+    ini_set('display_errors', 0);
+    ini_set('display_startup_errors', 0);
+}
 
 //set timezone and locale padrão
 date_default_timezone_set("America/Sao_Paulo");

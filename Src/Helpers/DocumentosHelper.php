@@ -4,7 +4,8 @@ namespace Src\Helpers;
 class DocumentosHelper {
 
     // validar cpf
-    public static function validarCpf($cpf) {
+    public static function validarCpf($cpf) : bool
+    {
         // 1. Remove caracteres não numéricos
         $cpf = preg_replace('/[^0-9]/', '', (string)$cpf);
 
@@ -34,7 +35,8 @@ class DocumentosHelper {
     }
 
     //validar cnpj
-    public static function validarCnpj($cnpj) {
+    public static function validarCnpj($cnpj) : bool
+    {
         // 1. Remove caracteres não numéricos
         $cnpj = preg_replace('/[^0-9]/', '', (string)$cnpj);
 
