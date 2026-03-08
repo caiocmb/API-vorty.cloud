@@ -6,19 +6,51 @@ use Src\Models\ConnectDB;
 use Firebase\JWT\JWT;
 use Src\Services\LogServices;
 
-class LoginModel extends ConnectDB
+class RefreshModel extends ConnectDB
 {
-    private $conexao,$log;
+    private $conexao,$connsaas,$log;
     public function __construct() 
     {
-        $this->conexao = parent::ConnectSaas();
+        $this->conexao = parent::ConnectLog();
+        $this->connsaas = parent::ConnectSaas();
         $this->log = new LogServices();
     }
 
     // Faz a consulta para logar aluno na plataforma
-    public function LogarAluno($cpf, $password, $company, $response) : string | bool
+    public function RefreshAlunos($data, $response) : string | bool
     {
-        $sql = $this->conexao->prepare("SELECT 
+        $sql = $this->conexao->prepare("SELECT id, token, expires_at, is_revoked FROM user_refresh_tokens 
+            WHERE user_id = :uid AND is_revoked = 0 AND expires_at > NOW() AND company_id = :company ORDER BY created_at DESC LIMIT 1");
+        $sql->execute([
+            'uid' => $data['uid'],
+            'company' => $data['company']
+        ]);        
+
+        $tokensNoBanco = $sql->fetchAll(\PDO::FETCH_ASSOC);
+        
+        //valida se foi encontrado, caso nao, retorna false
+        $tokenValido = false;
+        foreach ($tokensNoBanco as $row) {
+            // 3. Verifica se o token enviado "bate" com o hash do banco
+            if (password_verify($data['refresh_token'], $row['token'])) {
+                // 4. Verifica se ainda está na validade
+                if (strtotime($row['expires_at']) > time()) {
+                    $tokenValido = $row; // Sucesso!
+                    break;
+                }
+            }
+        }
+
+        if(!$tokenValido) {   
+
+            $response->status = 'error';
+            $response->code_error = 401;
+            $response->message = 'Token inválido ou expirado.';
+            return false;
+            die();
+        }
+
+        $sql = $this->connsaas->prepare("SELECT 
                                             u.id
                                             ,u.name
                                             ,u.social_name
@@ -31,55 +63,17 @@ class LoginModel extends ConnectDB
                                             ,foto_app as foto
                                         FROM tb_gym_member as u 
                                         INNER JOIN tb_company as e on e.id = u.id_company
-                                        WHERE u.cpf = :cpf and e.cnpj = :company and u.status not in ('I') LIMIT 1");
+                                        WHERE u.id = :id and e.cnpj = :company and u.status not in ('I') LIMIT 1");
         $sql->execute([
-            'cpf' => $cpf,
-            'company' => $company
+            'id' => $data['uid'],
+            'company' => $data['company']
         ]);        
 
         $aluno = $sql->fetch(\PDO::FETCH_ASSOC);
-        
-        //valida se foi encontrado, caso nao, retorna false
+
         if(!$aluno) 
         {
             //registra log
-            $this->log->registrarLogin(null, $cpf, $company, false, 'CPF não encontrado, cnpj errado ou cadastro inativo');
-
-            $response->status = 'error';
-            $response->code_error = 401;
-            $response->message = 'As credenciais informadas são inválidas.';
-
-            return false;
-            die();
-        }
-
-        //verifica se a senha ainda está nula, indica o primeiro acesso
-        if($aluno['password'] == null)
-        {
-            $senha_cripto = password_hash($aluno['aniversario'], PASSWORD_DEFAULT);
-
-            // atualiza campos de senha
-            $stmt_upd = $this->conexao->prepare("UPDATE tb_gym_member SET password = :senha WHERE id = :id and id_company = :company");
-            $stmt_upd->execute([
-                'senha' => $senha_cripto,
-                'id' => $aluno['id'],
-                'company' => $aluno['company_id']
-            ]);
-
-            //registra log
-            $this->log->registrarLogin($aluno['id'], $cpf, $company, true, 'Primeiro acesso do aluno, senha registrada');
-        }
-        else
-        {
-            $senha_cripto = $aluno['password'];
-        }
-
-        //varifica a senha
-        if(!password_verify($password,$senha_cripto)) 
-        {
-            //registra log
-            $this->log->registrarLogin($aluno['id'], $cpf, $company, false, 'Senha informada no formulário não bate com a senha registrada');
-
             $response->status = 'error';
             $response->code_error = 401;
             $response->message = 'As credenciais informadas são inválidas.';
@@ -104,13 +98,14 @@ class LoginModel extends ConnectDB
         ];
 
         $encode = JWT::encode($payload, $key, 'HS256');
-        // 2. Gera o Refresh Token (String aleatória de 64 caracteres)
+
+        // registra novo refresh token
         $refreshToken = bin2hex(random_bytes(32));
 
-        $this->log->registrarRefreshToken($aluno['id'], $company, $refreshToken);
-        
+        $this->log->registrarRefreshToken($aluno['id'], $data['company'], $refreshToken);
+   
         //registra log
-        $this->log->registrarLogin($aluno['id'], $cpf, $company, true, 'Aluno logou na plataforma');
+        $this->log->registrarLogin($aluno['id'], $aluno['cpf'], $data['company'], true, 'Aluno atualizou o token na plataforma');
 
         $foto_app = $aluno['foto'] ?? '';
         if(empty(trim($foto_app))){ $foto_app = 'no_picture.webp'; }
@@ -118,7 +113,7 @@ class LoginModel extends ConnectDB
         //se deu certo, retorna successo e o token
         $response->status = 'success';
         $response->code_error = 200;
-        $response->message = 'Login efetuado com sucesso';
+        $response->message = 'Token atualizado com sucesso';
         $response->data = [
             "token" => $encode,
             "refresh_token" => $refreshToken,

@@ -50,6 +50,7 @@ class MonthlyfeeModel extends ConnectDB
             WHERE 
                 m.id_company = :company_id 
                 AND m.id_member = :userid 
+            ORDER BY m.created_at DESC
             LIMIT 12");
     
             $sql->execute([
