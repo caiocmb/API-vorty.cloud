@@ -31,7 +31,8 @@ class TrainingModel extends ConnectDB
                 SELECT t.id, m.name as titulo 
                 FROM tb_trainings t
                 INNER JOIN tb_muscles m ON m.id = t.treino_nome AND m.id_company = t.id_company
-                WHERE t.id_member = :uid AND t.id_company = :cid
+                INNER JOIN tb_gym_member g ON g.id = t.id_member AND g.id_company = t.id_company
+                WHERE t.id_member = :uid AND t.id_company = :cid AND g.status = 'A'
                 ORDER BY t.seq ASC
             ");
             $sqlTreinos->execute(['uid' => $user_id, 'cid' => $company_id]);
@@ -55,10 +56,23 @@ class TrainingModel extends ConnectDB
                 $sqlEx->execute(['treino_id' => $treino['id'], 'cid' => $company_id]);
 
                 $exercicios = $sqlEx->fetchAll(\PDO::FETCH_ASSOC);
+
+                // aqui vamos validar se existe treino aberto para o treino, se existir, ele mostra a ação de continuar, se não existir, ele mostra a ação de iniciar. Para isso, precisamos puxar da tabela tb_app_training_header onde id_member = user_id e id_training = treino_id e final_date is null, se encontrar, mostra continuar, se não encontrar, mostra iniciar.
+                $sqlHeader = $this->conexao->prepare("SELECT id FROM tb_app_training_header WHERE id_member = :uid AND id_training = :treino_id AND id_company = :cid AND final_date IS NULL and date_format(initial_date, '%Y-%m-%d') = date_format(now(), '%Y-%m-%d')");
+                $sqlHeader->execute(['uid' => $user_id, 'treino_id' => $treino['id'], 'cid' => $company_id]);
+                $headerRow = $sqlHeader->fetch(\PDO::FETCH_ASSOC);  
+
+                // aqui alem de definir se é iniciar ou continuar, ele também verifica se o treino tem exercicios, se tiver exercicios, ele mostra iniciar ou continuar, se não tiver exercicios, ele não mostra nada.
+                if ($headerRow) {
+                    $acao = "Continuar";
+                } else {
+                    $acao = !empty($exercicios) ? "Iniciar" : null;
+                }
                 
                 $treinosFormatados[] = [
                     "titulo" => $treino['titulo'],
-                    "acao"   => !empty($exercicios) ? "Iniciar" : null,
+                    "id" => base64_encode($treino['id']),
+                    "acao"   => $acao,
                     "exercicios" => $exercicios
                 ];
             }
@@ -68,7 +82,7 @@ class TrainingModel extends ConnectDB
             $response->code_error = 200;
             $response->message = 'Treinos listados com sucesso';
             $response->data = [
-                "observacao" => $obsRow['obs'] ?? "Sem observações",
+                "observacao" => $obsRow['obs'] ?? null,
                 "treinos" => $treinosFormatados
             ];
 
