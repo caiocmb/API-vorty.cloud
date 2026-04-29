@@ -181,7 +181,7 @@ class RankingModel extends ConnectDB
                                                 (SELECT COUNT(*) FROM tb_app_training_header h WHERE h.id_member = u.id AND h.final_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as treinos_ultimos_30_dias
                                             FROM tb_gym_member u
                                             INNER JOIN tb_app_xp_balance b ON b.member_id = u.id AND b.id_company = :company_id
-                                            WHERE b.id_company = :company_id
+                                            WHERE b.id_company = :company_id and u.status not in ('I')
                                             ORDER BY xp_total DESC, treinos_ultimos_30_dias DESC
                                             LIMIT 10");
             $sql->execute(['company_id' => $company_id]);
@@ -212,7 +212,7 @@ class RankingModel extends ConnectDB
                                                     ) as posicao_atual
                                                 FROM tb_gym_member u
                                                 INNER JOIN tb_app_xp_balance b ON b.member_id = u.id
-                                                WHERE b.id_company = :company_id
+                                                WHERE b.id_company = :company_id and u.status not in ('I')
                                             ),
                                             ComparativoSoberano AS (
                                                 -- Passo 2: Usamos LAG para capturar os dados de quem está na posição acima (posicao_atual - 1)
