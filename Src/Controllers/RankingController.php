@@ -57,6 +57,16 @@ class RankingController
             }
             
         }
+
+        if($header->method == 'POST')
+        {   
+            $parm = [];
+      
+            return $this->model->ConnectUser($parm,$response,$body);
+            die();
+
+            
+        }
        
         // se não encontra nada, retorna erro
         $response->status = 'error';
