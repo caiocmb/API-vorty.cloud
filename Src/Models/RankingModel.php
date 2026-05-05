@@ -254,48 +254,50 @@ class RankingModel extends ConnectDB
 
             // aqui quero trazer o ranking entre amigos, só vai trazer se existir na tabela SELECT `id_company`, `member_uid_1`, `member_uid_2`, `connected_at` FROM `tb_app_member_connections`. Ela deve vincular a tabela de balance para ver a posição entre os amigos
             $sql = $this->conexao->prepare("SELECT * FROM (
-                                            -- Parte 1: Busca os Amigos do usuário
-                                            SELECT 
-                                                u.id AS friend_uid,
-                                                COALESCE(u.social_name, SUBSTRING_INDEX(u.name, ' ', 1)) AS nickname,
-                                                u.foto_app as foto,
-                                                b.balance AS xp_total,
-                                                (SELECT COUNT(*) 
-                                                FROM tb_app_training_header h 
-                                                WHERE h.id_member = u.id 
-                                                AND h.final_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)) AS treinos_ultimos_30_dias
-                                            FROM tb_app_member_connections c
-                                            INNER JOIN tb_gym_member u ON (
-                                                (u.id = c.member_uid_1 AND c.member_uid_2 = :user_id) 
-                                                OR 
-                                                (u.id = c.member_uid_2 AND c.member_uid_1 = :user_id)
-                                            )
-                                            INNER JOIN tb_app_xp_balance b ON b.member_id = u.id AND b.id_company = :company_id
-                                            WHERE c.id_company = :company_id
-                                            AND (c.member_uid_1 = :user_id OR c.member_uid_2 = :user_id)
+                                                -- Parte 1: Busca os Amigos do usuário
+                                                SELECT 
+                                                    u.id AS friend_uid,
+                                                    COALESCE(u.social_name, SUBSTRING_INDEX(u.name, ' ', 1)) AS nickname,
+                                                    u.foto_app as foto,
+                                                    COALESCE(b.balance, 0) AS xp_total, -- Se for NULL, retorna 0
+                                                    (SELECT COUNT(*) 
+                                                    FROM tb_app_training_header h 
+                                                    WHERE h.id_member = u.id 
+                                                    AND h.final_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)) AS treinos_ultimos_30_dias
+                                                FROM tb_app_member_connections c
+                                                INNER JOIN tb_gym_member u ON (
+                                                    (u.id = c.member_uid_1 AND c.member_uid_2 = :user_id) 
+                                                    OR 
+                                                    (u.id = c.member_uid_2 AND c.member_uid_1 = :user_id)
+                                                )
+                                                -- Mudança para LEFT JOIN para não excluir usuários sem saldo
+                                                LEFT JOIN tb_app_xp_balance b ON b.member_id = u.id AND b.id_company = :company_id
+                                                WHERE c.id_company = :company_id
+                                                AND (c.member_uid_1 = :user_id OR c.member_uid_2 = :user_id)
 
-                                            UNION ALL
+                                                UNION ALL
 
-                                            -- Parte 2: Busca os dados do próprio usuário (Somente se ele tiver amigos)
-                                            SELECT 
-                                                u.id AS friend_uid,
-                                                'Você' AS nickname,
-                                                u.foto_app as foto,
-                                                b.balance AS xp_total,
-                                                (SELECT COUNT(*) 
-                                                FROM tb_app_training_header h 
-                                                WHERE h.id_member = u.id 
-                                                AND h.final_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)) AS treinos_ultimos_30_dias
-                                            FROM tb_gym_member u
-                                            INNER JOIN tb_app_xp_balance b ON b.member_id = u.id AND b.id_company = :company_id
-                                            WHERE u.id = :user_id
-                                            AND EXISTS (
-                                                SELECT 1 FROM tb_app_member_connections 
-                                                WHERE id_company = :company_id 
-                                                AND (member_uid_1 = :user_id OR member_uid_2 = :user_id)
-                                            )
-                                        ) AS ranking_social
-                                        ORDER BY xp_total DESC, treinos_ultimos_30_dias DESC;");
+                                                -- Parte 2: Busca os dados do próprio usuário
+                                                SELECT 
+                                                    u.id AS friend_uid,
+                                                    'Você' AS nickname,
+                                                    u.foto_app as foto,
+                                                    COALESCE(b.balance, 0) AS xp_total, -- Se for NULL, retorna 0
+                                                    (SELECT COUNT(*) 
+                                                    FROM tb_app_training_header h 
+                                                    WHERE h.id_member = u.id 
+                                                    AND h.final_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)) AS treinos_ultimos_30_dias
+                                                FROM tb_gym_member u
+                                                -- Mudança para LEFT JOIN aqui também
+                                                LEFT JOIN tb_app_xp_balance b ON b.member_id = u.id AND b.id_company = :company_id
+                                                WHERE u.id = :user_id
+                                                AND EXISTS (
+                                                    SELECT 1 FROM tb_app_member_connections 
+                                                    WHERE id_company = :company_id 
+                                                    AND (member_uid_1 = :user_id OR member_uid_2 = :user_id)
+                                                )
+                                            ) AS ranking_social
+                                            ORDER BY xp_total DESC, treinos_ultimos_30_dias DESC;");
 
             $sql->execute(['company_id' => $company_id, 'user_id' => $userid]);
             $ranking_amigos = $sql->fetchAll(\PDO::FETCH_ASSOC);
