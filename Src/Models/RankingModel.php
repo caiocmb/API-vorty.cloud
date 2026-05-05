@@ -431,8 +431,7 @@ class RankingModel extends ConnectDB
     {
         $company_id = $token->company->id;
         $userid = $token->uid;
-        $codigo_conexao = '1';
-        $cod_teste = $dados->data['codigo'];
+        $codigo_conexao = $dados->data['codigo'];
 
         try {
             // Primeiro, verificamos se o código de conexão é válido e obtemos o ID do usuário correspondente
@@ -443,7 +442,7 @@ class RankingModel extends ConnectDB
             if (!$friend) {
                 $response->status = 'error';
                 $response->code_error = 404;
-                $response->message = 'Código de conexão inválido. USER LOGADO:'.$userid.' | USER CONN:'.$cod_teste.' | Company:'.$company_id;
+                $response->message = 'Código de conexão inválido.';
                 return false;
             }
 
