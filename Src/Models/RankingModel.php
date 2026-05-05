@@ -252,10 +252,126 @@ class RankingModel extends ConnectDB
             $sql->execute(['company_id' => $company_id, 'user_id' => $userid]);
             $posicao_usuario = $sql->fetch(\PDO::FETCH_ASSOC);
 
+            // aqui quero trazer o ranking entre amigos, só vai trazer se existir na tabela SELECT `id_company`, `member_uid_1`, `member_uid_2`, `connected_at` FROM `tb_app_member_connections`. Ela deve vincular a tabela de balance para ver a posição entre os amigos
+            $sql = $this->conexao->prepare("SELECT * FROM (
+                                            -- Parte 1: Busca os Amigos do usuário
+                                            SELECT 
+                                                u.id AS friend_uid,
+                                                COALESCE(u.social_name, SUBSTRING_INDEX(u.name, ' ', 1)) AS nickname,
+                                                u.foto_app as foto,
+                                                b.balance AS xp_total,
+                                                (SELECT COUNT(*) 
+                                                FROM tb_app_training_header h 
+                                                WHERE h.id_member = u.id 
+                                                AND h.final_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)) AS treinos_ultimos_30_dias
+                                            FROM tb_app_member_connections c
+                                            INNER JOIN tb_gym_member u ON (
+                                                (u.id = c.member_uid_1 AND c.member_uid_2 = :user_id) 
+                                                OR 
+                                                (u.id = c.member_uid_2 AND c.member_uid_1 = :user_id)
+                                            )
+                                            INNER JOIN tb_app_xp_balance b ON b.member_id = u.id AND b.id_company = :company_id
+                                            WHERE c.id_company = :company_id
+                                            AND (c.member_uid_1 = :user_id OR c.member_uid_2 = :user_id)
+
+                                            UNION ALL
+
+                                            -- Parte 2: Busca os dados do próprio usuário (Somente se ele tiver amigos)
+                                            SELECT 
+                                                u.id AS friend_uid,
+                                                'Você' AS nickname,
+                                                u.foto_app as foto,
+                                                b.balance AS xp_total,
+                                                (SELECT COUNT(*) 
+                                                FROM tb_app_training_header h 
+                                                WHERE h.id_member = u.id 
+                                                AND h.final_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)) AS treinos_ultimos_30_dias
+                                            FROM tb_gym_member u
+                                            INNER JOIN tb_app_xp_balance b ON b.member_id = u.id AND b.id_company = :company_id
+                                            WHERE u.id = :user_id
+                                            AND EXISTS (
+                                                SELECT 1 FROM tb_app_member_connections 
+                                                WHERE id_company = :company_id 
+                                                AND (member_uid_1 = :user_id OR member_uid_2 = :user_id)
+                                            )
+                                        ) AS ranking_social
+                                        ORDER BY xp_total DESC, treinos_ultimos_30_dias DESC;");
+
+            $sql->execute(['company_id' => $company_id, 'user_id' => $userid]);
+            $ranking_amigos = $sql->fetchAll(\PDO::FETCH_ASSOC);
+
+             // aqui verifico se tem foto, se não tiver, coloco a foto default "no_picture.webp"
+            foreach ($ranking_amigos as &$membera) {
+                if (empty($membera['foto'])) {
+                    $membera['foto'] = 'no_picture.webp';
+                }
+            }
+
+            // Definição dos grupos de frases
+            $pool_frases = [
+                'primeiro' => [
+                    "Nível insano! 🚀",
+                    "Pode pedir música! 🎶",
+                    "Imbatível no topo. 🔥",
+                    "O exemplo do grupo! 🏆",
+                    "Simplesmente elite. ✨"
+                ],
+                'segundo' => [
+                    "No rastro da liderança! 👀",
+                    "Só mais um scoop... 🥤",
+                    "Pressão total no topo! 💪",
+                    "Sentindo o cheirinho do ouro?",
+                    "A liderança que se cuide! 🏃"
+                ],
+                'terceiro' => [
+                    "Pódio garantido! 🥉",
+                    "Ninguém tira do Top 3.",
+                    "Olhando pra cima! 👀",
+                    "Presença confirmada no pódio.",
+                    "Medalha de respeito! ✨"
+                ],
+                'demais' => [
+                    "Cadê o cardio de hoje? 🏃",
+                    "Hoje teve treino ou só resenha? 🗣️",
+                    "Evolução constante. 📈",
+                    "Foco no progresso!",
+                    "Vem treinar, sumiço!",
+                    "Segunda-feira você recupera! 😂",
+                    "Subindo no sapatinho...",
+                    "A meta é não ser o último lugar!"
+                ]
+            ];
+
+            // Aplicando as frases ao array de ranking
+            foreach ($ranking_amigos as $index => &$membera) {
+                $posicao = $index + 1; // Array começa em 0, ranking em 1
+                
+                // Identifica qual categoria de frase usar
+                if ($posicao == 1) {
+                    $categoria = 'primeiro';
+                } elseif ($posicao == 2) {
+                    $categoria = 'segundo';
+                } elseif ($posicao == 3) {
+                    $categoria = 'terceiro';
+                } else {
+                    $categoria = 'demais';
+                }
+
+                // Seleciona uma frase aleatória dentro da categoria
+                // Usamos o ID do usuário como semente para a frase não mudar toda hora no mesmo dia
+                // Se quiser que mude a cada refresh total, use apenas array_rand()
+                $random_key = array_rand($pool_frases[$categoria]);
+                $membera['status_frase'] = $pool_frases[$categoria][$random_key];
+                
+                // Adiciona a posição ao array para facilitar no HTML
+                $membera['posicao'] = $posicao;
+            }
+
             $response->status = 'success';
             $response->message = 'Ranking encontrado com sucesso.';
             $response->data = [
                 'ranking' => $ranking,
+                'ranking_amigos' => $ranking_amigos,
                 'posicao_usuario' => $posicao_usuario['posicao_atual'] ?? null,
                 'xp_total_usuario' => $posicao_usuario['meu_xp'] ?? 0,
                 'proxima_posicao' => $posicao_usuario['proxima_posicao'] ?? null,
@@ -270,6 +386,99 @@ class RankingModel extends ConnectDB
             $response->message = 'Erro ao executar a consulta no banco de dados: ' . $e->getMessage();
             return false;
         }
+    }
+
+    // aqui vou criar uma função para trazer quem se conectou com a pessoa nos ultimos 15 segundos, de acordo com a query SELECT `id_company`, `member_uid_1`, `member_uid_2`, `connected_at` FROM `tb_app_member_connections`. O Uid pode estar em qualwur uma das colunas, então deve verificar quem se conectou nos ultimos 15 segundos somente para o app validar.
+    public function CheckConnectionFriend($parms,$response,$data_received) : string | bool 
+    {
+        $company_id = $data_received->company->id;
+        $userid = $data_received->uid;
+
+        try {
+            $sql = $this->conexao->prepare("SELECT 
+                                                CASE 
+                                                    WHEN member_uid_1 = :user_id THEN member_uid_2 
+                                                    ELSE member_uid_1 
+                                                END AS friend_uid
+                                            FROM tb_app_member_connections
+                                            WHERE id_company = :company_id
+                                            AND (member_uid_1 = :user_id OR member_uid_2 = :user_id)
+                                            AND connected_at >= DATE_SUB(NOW(), INTERVAL 15 SECOND);");
+            $sql->execute(['company_id' => $company_id, 'user_id' => $userid]);
+            $connections = $sql->fetchAll(\PDO::FETCH_ASSOC);
+
+            if ($connections) {
+                $response->status = 'success';
+                $response->message = 'Conexões recentes encontradas.';
+                $response->data = $connections;
+            } else {
+                $response->status = 'error';
+                $response->code_error = 404;
+                $response->message = 'Nenhuma conexão recente encontrada.';
+            }
+            return true;
+
+        } catch (\PDOException $e) {
+            $response->status = 'error';
+            $response->code_error = 500;
+            $response->message = 'Erro ao executar a consulta no banco de dados: ' . $e->getMessage();
+            return false;
+        }
+    }
+
+    // aqui vamos criar a função pra receber o uuid do usuario que vamos nos conectar. ele deve inserir na tabela usando sempre o id em ordem do array asc no campo uid 1 e depois no 2. O cmapo que vamos receber é codigo
+    public function ConnectUser($parms,$response,$data_received) : bool
+    {
+        $company_id = $data_received->company->id;
+        $userid = $data_received->uid;
+        $codigo_conexao = $data_received->codigo;
+
+        try {
+            // Primeiro, verificamos se o código de conexão é válido e obtemos o ID do usuário correspondente
+            $sql = $this->conexao->prepare("SELECT id FROM tb_gym_member WHERE id_company = :company_id AND id = :codigo_conexao");
+            $sql->execute(['company_id' => $company_id, 'codigo_conexao' => $codigo_conexao]);
+            $friend = $sql->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$friend) {
+                $response->status = 'error';
+                $response->code_error = 404;
+                $response->message = 'Código de conexão inválido.';
+                return false;
+            }
+
+            $friend_uid = $friend['id'];
+
+            // Verificamos se já existe uma conexão entre os dois usuários
+            $sql = $this->conexao->prepare("SELECT id FROM tb_app_member_connections WHERE id_company = :company_id AND ((member_uid_1 = :user_id AND member_uid_2 = :friend_uid) OR (member_uid_1 = :friend_uid AND member_uid_2 = :user_id))");
+            $sql->execute(['company_id' => $company_id, 'user_id' => $userid, 'friend_uid' => $friend_uid]);
+            if ($sql->fetch(\PDO::FETCH_ASSOC)) {
+                $response->status = 'error';
+                $response->code_error = 409;
+                $response->message = 'Vocês já estão conectados.';
+                return false;
+            }
+
+            // Inserimos a nova conexão
+            $sql = $this->conexao->prepare("INSERT INTO tb_app_member_connections (id_company, member_uid_1, member_uid_2, connected_at) VALUES (:company_id, :user_id, :friend_uid, NOW())");
+            $sql->execute(['company_id' => $company_id, 'user_id' => min($userid, $friend_uid), 'friend_uid' => max($userid, $friend_uid)]);
+
+            if ($sql->rowCount() > 0) {
+                $response->status = 'success';
+                $response->message = 'Conexão estabelecida com sucesso.';
+                return true;
+            } else {
+                $response->status = 'error';
+                $response->code_error = 500;
+                $response->message = 'Erro ao estabelecer a conexão.';
+                return false;
+            }
+        } catch (\PDOException $e) {
+            $response->status = 'error';
+            $response->code_error = 500;
+            $response->message = 'Erro ao executar a consulta no banco de dados: ' . $e->getMessage();
+            return false;
+        }
+            
     }
     
 }

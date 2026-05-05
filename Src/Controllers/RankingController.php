@@ -36,6 +36,8 @@ class RankingController
     //recebe os dados e faz o que foi solicitado
     public function Send($response,$header,$body) 
     {   
+        global $rotas;
+
         $header = (object)$header;
         $body = (object)$body;
 
@@ -43,8 +45,17 @@ class RankingController
         {   
             $parm = [];
 
-            return $this->model->Ranking($parm,$response,$body);
-            die();
+            if(isset($rotas[1]) && $rotas[1] == 'check_connection')
+            {          
+                return $this->model->CheckConnectionFriend($parm,$response,$body);
+                die();
+            }
+            else
+            {
+                return $this->model->Ranking($parm,$response,$body);
+                die();
+            }
+            
         }
        
         // se não encontra nada, retorna erro
