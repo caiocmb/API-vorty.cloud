@@ -427,11 +427,12 @@ class RankingModel extends ConnectDB
     }
 
     // aqui vamos criar a função pra receber o uuid do usuario que vamos nos conectar. ele deve inserir na tabela usando sempre o id em ordem do array asc no campo uid 1 e depois no 2. O cmapo que vamos receber é codigo
-    public function ConnectUser($parms,$response,$data_received) : bool
+    public function ConnectUser($parms, $dados, $response, $token)  : bool
     {
-        $company_id = $data_received->company->id;
-        $userid = $data_received->uid;
-        $codigo_conexao = $data_received->codigo;
+        $company_id = $token->company->id;
+        $userid = $token->uid;
+        $codigo_conexao = '1';
+        $cod_teste = $dados->codigo;
 
         try {
             // Primeiro, verificamos se o código de conexão é válido e obtemos o ID do usuário correspondente
@@ -442,7 +443,7 @@ class RankingModel extends ConnectDB
             if (!$friend) {
                 $response->status = 'error';
                 $response->code_error = 404;
-                $response->message = 'Código de conexão inválido. USER LOGADO:'.$userid.' | USER CONN:'.$codigo_conexao.' | Company:'.$company_id;
+                $response->message = 'Código de conexão inválido. USER LOGADO:'.$userid.' | USER CONN:'.$cod_teste.' | Company:'.$company_id;
                 return false;
             }
 

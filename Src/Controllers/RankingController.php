@@ -34,35 +34,35 @@ class RankingController
     }*/
 
     //recebe os dados e faz o que foi solicitado
-    public function Send($response,$header,$body) 
+    public function Send($response,$dados,$token) 
     {   
         global $rotas;
 
-        $header = (object)$header;
-        $body = (object)$body;
+        $dados = (object)$dados;
+        $token = (object)$token;
 
-        if($header->method == 'GET')
+        if($dados->method == 'GET')
         {   
             $parm = [];
 
             if(isset($rotas[1]) && $rotas[1] == 'check_connection')
             {          
-                return $this->model->CheckConnectionFriend($parm,$response,$body);
+                return $this->model->CheckConnectionFriend($parm,$response,$token);
                 die();
             }
             else
             {
-                return $this->model->Ranking($parm,$response,$body);
+                return $this->model->Ranking($parm,$response,$token);
                 die();
             }
             
         }
 
-        if($header->method == 'POST')
+        if($dados->method == 'POST')
         {   
             $parm = [];
       
-            return $this->model->ConnectUser($parm,$response,$body);
+            return $this->model->ConnectUser($parm,$dados,$response,$token);
             die();
 
             
