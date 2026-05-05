@@ -449,7 +449,7 @@ class RankingModel extends ConnectDB
             $friend_uid = $friend['id'];
 
             // Verificamos se já existe uma conexão entre os dois usuários
-            $sql = $this->conexao->prepare("SELECT id FROM tb_app_member_connections WHERE id_company = :company_id AND ((member_uid_1 = :user_id AND member_uid_2 = :friend_uid) OR (member_uid_1 = :friend_uid AND member_uid_2 = :user_id))");
+            $sql = $this->conexao->prepare("SELECT * FROM tb_app_member_connections WHERE id_company = :company_id AND ((member_uid_1 = :user_id AND member_uid_2 = :friend_uid) OR (member_uid_1 = :friend_uid AND member_uid_2 = :user_id))");
             $sql->execute(['company_id' => $company_id, 'user_id' => $userid, 'friend_uid' => $friend_uid]);
             if ($sql->fetch(\PDO::FETCH_ASSOC)) {
                 $response->status = 'error';
