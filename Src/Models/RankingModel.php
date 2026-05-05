@@ -432,7 +432,7 @@ class RankingModel extends ConnectDB
         $company_id = $token->company->id;
         $userid = $token->uid;
         $codigo_conexao = '1';
-        $cod_teste = $dados->codigo;
+        $cod_teste = $dados->data['codigo'];
 
         try {
             // Primeiro, verificamos se o código de conexão é válido e obtemos o ID do usuário correspondente
