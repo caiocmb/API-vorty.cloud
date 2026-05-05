@@ -442,7 +442,7 @@ class RankingModel extends ConnectDB
             if (!$friend) {
                 $response->status = 'error';
                 $response->code_error = 404;
-                $response->message = 'Código de conexão inválido.'.$codigo_conexao;
+                $response->message = 'Código de conexão inválido. USER LOGADO:'.$userid.' | USER CONN:'.$codigo_conexao.' | Company:'.$company_id;
                 return false;
             }
 
